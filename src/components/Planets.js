@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import Planet from './Planet';
 
+const maxPlanetsPage = 6;
 const fetchPlanets = async (page) => {
   const { data } = await axios.get(
     `https://swapi.dev/api/planets/?page=${page}`
@@ -12,8 +13,24 @@ const fetchPlanets = async (page) => {
 
 const Planets = () => {
   const [page, setPage] = useState(1);
-  const { data, status } = useQuery(['planets', page], () =>
-    fetchPlanets(page)
+
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (page < maxPlanetsPage) {
+      const nextPage = page + 1;
+      queryClient.prefetchQuery(['planets', nextPage], () =>
+        fetchPlanets(nextPage)
+      );
+    }
+  }, [page]);
+
+  const { data, status } = useQuery(
+    ['planets', page],
+    () => fetchPlanets(page),
+    {
+      keepPreviousData: true,
+    }
   );
 
   return (
